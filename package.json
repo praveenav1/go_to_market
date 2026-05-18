@@ -1,0 +1,27 @@
+{
+  "name": "gtm-repository-portal",
+  "version": "1.0.0",
+  "description": "GTM Repository Portal - Go-to-Market Resources Platform",
+  "private": true,
+  "scripts": {
+    "frontend:install": "cd frontend && npm install",
+    "frontend:start": "cd frontend && npm start",
+    "frontend:build": "cd frontend && npm run build",
+    "backend:install": "cd backend && pip install -r requirements.txt",
+    "backend:start": "cd backend && python app.py",
+    "dev": "concurrently \"npm run backend:start\" \"npm run frontend:start\"",
+    "setup": "npm run frontend:install && npm run backend:install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  },
+  "keywords": [
+    "gtm",
+    "go-to-market",
+    "repository",
+    "resources",
+    "portal"
+  ],
+  "author": "EY GTM Team",
+  "license": "PROPRIETARY"
+}
