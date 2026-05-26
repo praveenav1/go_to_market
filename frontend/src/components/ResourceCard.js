@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
-import VideoModal from './VideoModal';
+import React from 'react';
 
 function ResourceCard({ resource }) {
-  const [showVideo, setShowVideo] = useState(false);
 
   return (
     <>
@@ -31,31 +29,20 @@ function ResourceCard({ resource }) {
             ))}
           </div>
 
-          {/* Demo Button */}
-          <button
-            onClick={() => setShowVideo(true)}
-            className="mt-auto bg-accent hover:bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
+          {/* Video Player */}
+          <div className="mt-4 bg-black rounded-lg overflow-hidden">
+            {console.log('Video URL:', resource.video_url)}
+            <video
+              controls
+              className="w-full h-auto"
+              controlsList="nodownload"
             >
-              <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-            </svg>
-            Watch Demo
-          </button>
+              <source src={resource.video_url} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
         </div>
       </div>
-
-      {/* Video Modal */}
-      {showVideo && (
-        <VideoModal
-          videoUrl={resource.video_url}
-          header={resource.header}
-          onClose={() => setShowVideo(false)}
-        />
-      )}
     </>
   );
 }

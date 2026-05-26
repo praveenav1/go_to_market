@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import FilterBar from './components/FilterBar';
 import ResourceGrid from './components/ResourceGrid';
+import AddGTMForm from './components/AddGTMForm';
+import AdminPanel from './components/AdminPanel';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://192.168.0.162:5000'|| 'http://127.0.0.1:5000';
 
 function App() {
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' or 'add-gtm'
   const [resources, setResources] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [allTags, setAllTags] = useState([]);
@@ -56,31 +59,41 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
-        <FilterBar
-          tags={allTags}
-          selectedTags={selectedTags}
-          onTagChange={handleTagChange}
-        />
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
-        
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading resources...</p>
+      <Header onNavigate={setCurrentPage} currentPage={currentPage} />
+      
+      {currentPage === 'home' ? (
+        // Main Repository Page
+        <div className="container mx-auto px-4 py-8">
+          <FilterBar
+            tags={allTags}
+            selectedTags={selectedTags}
+            onTagChange={handleTagChange}
+          />
+          
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+              {error}
             </div>
-          </div>
-        ) : (
-          <ResourceGrid resources={filteredResources} />
-        )}
-      </div>
+          )}
+          
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading resources...</p>
+              </div>
+            </div>
+          ) : (
+            <ResourceGrid resources={filteredResources} />
+          )}
+        </div>
+      ) : currentPage === 'add-gtm' ? (
+        // Add GTM Page
+        <AddGTMForm />
+      ) : currentPage === 'admin' ? (
+        // Admin Panel Page
+        <AdminPanel />
+      ) : null}
     </div>
   );
 }
