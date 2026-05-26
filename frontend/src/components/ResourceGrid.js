@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ResourceCard from './ResourceCard';
 
-function ResourceGrid({ resources }) {
+function ResourceGrid({ resources, onEdit, showEdit }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {resources.length === 0 ? (
@@ -26,7 +26,7 @@ function ResourceGrid({ resources }) {
         </div>
       ) : (
         resources.map(resource => (
-          <ResourceCard key={resource.id} resource={resource} />
+          <ResourceCard key={resource.id} resource={{...resource, showEdit}} onEdit={onEdit} />
         ))
       )}
     </div>

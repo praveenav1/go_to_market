@@ -1,6 +1,6 @@
 import React from 'react';
 
-function ResourceCard({ resource }) {
+function ResourceCard({ resource, onEdit }) {
 
   return (
     <>
@@ -29,6 +29,13 @@ function ResourceCard({ resource }) {
             ))}
           </div>
 
+          {/* Contact */}
+          {resource.contact && (
+            <div className="text-sm text-gray-600 mb-2">
+              <strong>Contact:</strong> {resource.contact}
+            </div>
+          )}
+
           {/* Video Player */}
           <div className="mt-4 bg-black rounded-lg overflow-hidden">
             {console.log('Video URL:', resource.video_url)}
@@ -40,6 +47,16 @@ function ResourceCard({ resource }) {
               <source src={resource.video_url} type="video/mp4" />
               Your browser does not support the video tag.
             </video>
+          </div>
+          <div className="mt-4 flex gap-2">
+            {onEdit && resource && resource.showEdit && (
+              <button
+                onClick={() => onEdit && onEdit(resource)}
+                className="px-3 py-1 text-sm bg-primary text-white rounded"
+              >
+                Edit
+              </button>
+            )}
           </div>
         </div>
       </div>

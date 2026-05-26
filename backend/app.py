@@ -50,8 +50,9 @@ def serialize_resource(resource):
         'id': resource['id'],
         'header': resource['header'],
         'description': resource['description'],
-        'tags': resource['tags'],
-        'video_url': blob_service.build_blob_url(raw_video_value)
+        'tags': resource.get('tags', []),
+        'video_url': blob_service.build_blob_url(raw_video_value),
+        'contact': resource.get('contact')
     }
 
 
@@ -263,13 +264,17 @@ def submit_gtm_resource():
             traceback.print_exc()
             return jsonify({'error': f'Failed to upload video to Azure: {str(e)}'}), 500
         
+        # Contact (optional)
+        contact = request.form.get('contact', '').strip()
+
         # Save submission to database
-        print(f"DEBUG: Saving submission with blob_name={blob_name}")
+        print(f"DEBUG: Saving submission with blob_name={blob_name} contact={contact}")
         submission = SubmissionsManager.add_submission(
             header=header,
             description=description,
             tags=tags,
-            video_blob_name=blob_name
+            video_blob_name=blob_name,
+            contact=contact
         )
         
         if not submission:

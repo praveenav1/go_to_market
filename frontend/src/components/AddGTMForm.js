@@ -2,13 +2,29 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import API_BASE_URL from '../config';
 
-function AddGTMForm() {
+function AddGTMForm({ onSubmitted, editingResource }) {
   const [formData, setFormData] = useState({
     header: '',
     description: '',
     tags: [],
-    videoFile: null
+    videoFile: null,
+    contact: ''
   });
+  const [editingId, setEditingId] = useState(null);
+
+  // Pre-fill form when editingResource prop is provided
+  useEffect(() => {
+    if (editingResource) {
+      setFormData({
+        header: editingResource.header || '',
+        description: editingResource.description || '',
+        tags: editingResource.tags || [],
+        videoFile: null,
+        contact: editingResource.contact || ''
+      });
+      setEditingId(editingResource.id || null);
+    }
+  }, [editingResource]);
 
   const [allTags, setAllTags] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -59,10 +75,11 @@ function AddGTMForm() {
   };
 
   const addTag = (tag) => {
-    if (tag && !formData.tags.includes(tag)) {
+    const t = (tag || '').trim();
+    if (t && !formData.tags.includes(t)) {
       setFormData(prev => ({
         ...prev,
-        tags: [...prev.tags, tag]
+        tags: [...prev.tags, t]
       }));
     }
     setTagInput('');
@@ -117,6 +134,7 @@ function AddGTMForm() {
       submitData.append('description', formData.description);
       submitData.append('tags', JSON.stringify(formData.tags));
       submitData.append('video', formData.videoFile);
+      submitData.append('contact', formData.contact || '');
 
       // Submit to backend
       const response = await axios.post(
@@ -138,6 +156,9 @@ function AddGTMForm() {
         videoFile: null
       });
 
+      // Notify parent to refresh resources without full reload
+      if (onSubmitted) onSubmitted();
+
       // Clear success message after 5 seconds
       setTimeout(() => setSuccess(false), 5000);
     } catch (err) {
@@ -152,11 +173,11 @@ function AddGTMForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100 py-6">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Add my GTM</h1>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">Add my GTM</h1>
             <p className="text-gray-600 mb-6">
               Submit your GTM resource for admin approval. Once approved, it will be published to the GTM repository.
             </p>
@@ -281,6 +302,23 @@ function AddGTMForm() {
                   </div>
                 )}
               </div>
+
+                {/* Contact Person */}
+                <div>
+                  <label htmlFor="contact" className="block text-sm font-semibold text-slate-700 mb-2">
+                    Contact Person (email or name)
+                  </label>
+                  <input
+                    type="text"
+                    id="contact"
+                    name="contact"
+                    value={formData.contact}
+                    onChange={handleInputChange}
+                    placeholder="Contact name or email"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    disabled={loading}
+                  />
+                </div>
 
               {/* Video Upload */}
               <div>

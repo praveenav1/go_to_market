@@ -68,7 +68,7 @@ class SubmissionsManager:
 
     # ✅ CREATE SUBMISSION (UNCHANGED)
     @staticmethod
-    def add_submission(header, description, tags, video_blob_name):
+    def add_submission(header, description, tags, video_blob_name, contact=None):
         submissions = SubmissionsManager._load_submissions()
 
         submission_id = max([s.get('id', 0) for s in submissions], default=0) + 1
@@ -79,6 +79,7 @@ class SubmissionsManager:
             'description': description,
             'tags': tags,
             'video_blob_name': video_blob_name,
+            'contact': contact,
             'status': 'pending',
             'submitted_at': datetime.now().isoformat(),
             'reviewed_at': None,
@@ -140,7 +141,8 @@ class SubmissionsManager:
                 "header": submission['header'],
                 "description": submission['description'],
                 "tags": submission['tags'],
-                "video_blob_name": submission['video_blob_name']
+                "video_blob_name": submission['video_blob_name'],
+                "contact": submission.get('contact')
             }
 
             existing_resources.append(new_resource)

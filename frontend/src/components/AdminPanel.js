@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import API_BASE_URL from '../config';
 
-function AdminPanel() {
+function AdminPanel({ onEdit }) {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -154,6 +154,13 @@ function AdminPanel() {
                   </div>
                 </div>
 
+                {submission.contact && (
+                  <div className="mb-3 text-sm text-gray-700">
+                    <p className="font-semibold">Contact Person:</p>
+                    <p>{submission.contact}</p>
+                  </div>
+                )}
+
                 {submission.tags && submission.tags.length > 0 && (
                   <div className="mb-4">
                     <p className="font-semibold text-sm text-gray-700 mb-2">Tags:</p>
@@ -181,6 +188,14 @@ function AdminPanel() {
                     disabled={actionInProgress}
                   >
                     Review
+                  </button>
+                )}
+                {filter === 'all' && onEdit && (
+                  <button
+                    onClick={() => onEdit(submission)}
+                    className="ml-3 px-3 py-1 bg-primary text-white rounded-md text-sm"
+                  >
+                    Edit
                   </button>
                 )}
               </div>
