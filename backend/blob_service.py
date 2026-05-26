@@ -174,6 +174,56 @@ class BlobStorageService:
         
         print(f"✗ Could not upload {blob_name} - no valid upload method available")
         return None
+
+    def upload_blob_stream(self, file_obj, blob_name):
+        """
+        Upload a file object directly to Blob Storage without saving to disk
+        
+        Args:
+            file_obj: File object from request.files
+            blob_name (str): Name for the blob in storage
+        
+        Returns:
+            str: Blob name if successful, None otherwise
+        """
+        try:
+            file_data = file_obj.read()
+            
+            # Try direct HTTP upload first (if container URL and SAS token available)
+            if self.container_url and self.sas_token:
+                print("DEBUG: Attempting direct HTTP upload to Azure")
+                upload_url = f"{self.container_url}/{blob_name}?{self.sas_token}"
+                
+                headers = {
+                    'x-ms-blob-type': 'BlockBlob',
+                    'Content-Type': 'application/octet-stream'
+                }
+                
+                print(f"DEBUG: Uploading {blob_name} ({len(file_data)} bytes) to Azure...")
+                response = requests.put(upload_url, data=file_data, headers=headers)
+                
+                if response.status_code in [200, 201]:
+                    print(f"✓ Uploaded {blob_name} to Blob Storage via direct HTTP")
+                    return blob_name
+                else:
+                    print(f"DEBUG: Direct HTTP upload failed with status {response.status_code}: {response.text[:200]}")
+            
+            # Fallback to SDK if available
+            if self.client:
+                print("DEBUG: Falling back to SDK upload")
+                file_obj.seek(0)  # Reset file pointer for SDK
+                container_client = self.client.get_container_client(
+                    self.container_name
+                )
+                container_client.upload_blob(blob_name, file_obj, overwrite=True)
+                print(f"✓ Uploaded {blob_name} to Blob Storage via SDK")
+                return blob_name
+            
+            print(f"✗ Could not upload {blob_name} - no valid upload method available")
+            return None
+        except Exception as e:
+            print(f"✗ Error uploading blob stream: {str(e)}")
+            return None
     
     def delete_blob(self, blob_name):
         """

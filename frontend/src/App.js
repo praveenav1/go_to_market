@@ -5,8 +5,7 @@ import ResourceGrid from './components/ResourceGrid';
 import AddGTMForm from './components/AddGTMForm';
 import AdminPanel from './components/AdminPanel';
 import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://192.168.0.162:5000'|| 'http://127.0.0.1:5000';
+import API_BASE_URL from './config';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home'); // 'home' or 'add-gtm'

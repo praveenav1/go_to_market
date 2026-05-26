@@ -244,23 +244,12 @@ def submit_gtm_resource():
             print(f"DEBUG: Tags JSON parse error: {str(e)}")
             return jsonify({'error': 'Invalid tags format'}), 400
         
-        # Save video to temp folder
+        # Upload video directly to Azure Blob Storage (no temp file)
         filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        print(f"DEBUG: Saving file to {filepath}")
-        
-        try:
-            file.save(filepath)
-            print(f"DEBUG: File saved successfully, size: {os.path.getsize(filepath)} bytes")
-        except Exception as e:
-            print(f"DEBUG: Error saving file: {str(e)}")
-            return jsonify({'error': f'Failed to save video file: {str(e)}'}), 500
-        
-        # Upload to Azure Blob Storage using direct HTTP + SAS token
         blob_name = None
         try:
-            print("DEBUG: Attempting to upload to Azure Blob Storage")
-            blob_name = blob_service.upload_blob(filepath, filename)
+            print("DEBUG: Attempting to upload video to Azure Blob Storage")
+            blob_name = blob_service.upload_blob_stream(file, filename)
             
             if not blob_name:
                 print("DEBUG: blob_name is None after upload attempt")
@@ -269,20 +258,10 @@ def submit_gtm_resource():
             print(f"DEBUG: blob_name={blob_name}")
             
         except Exception as e:
-            if os.path.exists(filepath):
-                os.remove(filepath)
             print(f"DEBUG: Error uploading video: {str(e)}")
             import traceback
             traceback.print_exc()
             return jsonify({'error': f'Failed to upload video to Azure: {str(e)}'}), 500
-        
-        # Clean up temp file after successful upload
-        try:
-            if os.path.exists(filepath):
-                os.remove(filepath)
-                print("DEBUG: Temp file cleaned up")
-        except Exception as e:
-            print(f"DEBUG: Error cleaning up temp file: {str(e)}")
         
         # Save submission to database
         print(f"DEBUG: Saving submission with blob_name={blob_name}")

@@ -5,7 +5,7 @@ function Header({ onNavigate, currentPage }) {
 
   // Easter egg: Press 'A' three times to show admin link
   const handleKeyDown = (e) => {
-    if (e.key.toLowerCase() === 'a') {
+    if (e.key && e.key.toLowerCase() === 'a') {
       setShowAdminLink(prev => !prev);
     }
   };
