@@ -1,0 +1,16 @@
+{
+  "teams": [
+    {
+      "name": "AIE",
+      "approvers": ["Praveena", "Falguni"]
+    },
+    {
+      "name": "DE",
+      "approvers": ["Agrta"]
+    },
+    {
+      "name": "Super Team",
+      "approvers": ["Suraj", "Ashish"]
+    }
+  ]
+}

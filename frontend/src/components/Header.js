@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logo from '../assets/logo.webp';
 
 function Header({ onNavigate, currentPage, onSearch, selectedTab, onTabSelect }) {
   const [query, setQuery] = useState('');
@@ -15,13 +16,15 @@ function Header({ onNavigate, currentPage, onSearch, selectedTab, onTabSelect })
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-ey-yellow rounded-sm flex items-center justify-center font-bold text-ey-black">EY</div>
+              <div className="w-16 h-16 rounded-sm overflow-hidden bg-ey-black flex items-center justify-center">
+                <img src={logo} alt="Brand logo" className="h-full w-full object-cover" />
+              </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-semibold">Go-To-Market</span>
+                  <span className="text-base font-semibold">AI Experience Hub</span>
                   <span className="text-xs uppercase tracking-[0.25em] text-gray-300">AIE</span>
                 </div>
-                <p className="text-xs text-gray-400">GTM resource portal</p>
+                <p className="text-xs text-gray-400">AI Experience portal</p>
               </div>
             </div>
           </div>
@@ -61,14 +64,18 @@ function Header({ onNavigate, currentPage, onSearch, selectedTab, onTabSelect })
 
         {onTabSelect && (
           <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-800 pt-3">
-            {['All', 'Assets', 'Accelerator'].map(tab => (
-              <button
+            {['All', 'Assets & Accelerator'].map(tab => (
+              <a
                 key={tab}
-                onClick={() => onTabSelect(tab)}
-                className={`px-3 py-2 rounded-full text-sm ${selectedTab === tab ? 'bg-ey-yellow text-ey-black' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onTabSelect(tab);
+                }}
+                className={`px-3 py-2 text-sm transition-colors ${selectedTab === tab ? 'text-ey-yellow font-semibold' : 'text-gray-200 hover:text-white'}`}
               >
-                {tab}
-              </button>
+                <span>{tab}</span>
+              </a>
             ))}
           </div>
         )}

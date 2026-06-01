@@ -13,6 +13,20 @@ from blob_service import BlobStorageService
 from submissions import SubmissionsManager
 # from gtm_data import GTM_RESOURCES
 
+# Load team roles from roles.json
+ROLES_FILE = os.path.join(os.path.dirname(__file__), 'roles.json')
+
+def load_roles():
+    if not os.path.exists(ROLES_FILE):
+        return {'teams': []}
+    try:
+        with open(ROLES_FILE, 'r') as f:
+            roles = json.load(f)
+            return roles if isinstance(roles, dict) else {'teams': []}
+    except Exception as e:
+        print(f"Error loading roles file: {str(e)}")
+        return {'teams': []}
+
 # Load environment variables
 load_dotenv()
 
@@ -45,14 +59,15 @@ def allowed_file(filename):
 def serialize_resource(resource):
     """Normalize resource payload and resolve the final video URL."""
     raw_video_value = resource.get('video_blob_name') or resource.get('video_url', '')
-    
     return {
         'id': resource['id'],
         'header': resource['header'],
         'description': resource['description'],
         'tags': resource.get('tags', []),
         'video_url': blob_service.build_blob_url(raw_video_value),
-        'contact': resource.get('contact')
+        'contact': resource.get('contact'),
+        'team': resource.get('team'),
+        'approver': resource.get('approver')
     }
 
 
@@ -126,11 +141,29 @@ def get_tags():
         for resource in azure_resources:
             tags.update(resource.get('tags', []))
 
+        roles = load_roles()
+        for team in roles.get('teams', []):
+            if team.get('name'):
+                tags.add(team['name'])
+
         return jsonify(sorted(list(tags))), 200
 
     except Exception as e:
         print(f"Error fetching tags: {str(e)}")
         return jsonify({'error': 'Failed to fetch tags'}), 500
+
+
+@app.route('/api/roles', methods=['GET'])
+def get_roles():
+    """
+    Get configured teams and approvers.
+    """
+    try:
+        roles = load_roles()
+        return jsonify(roles), 200
+    except Exception as e:
+        print(f"Error fetching roles: {str(e)}")
+        return jsonify({'error': 'Failed to fetch roles'}), 500
 
 
 
@@ -225,6 +258,12 @@ def submit_gtm_resource():
         header = request.form.get('header', '').strip()
         description = request.form.get('description', '').strip()
         tags_json = request.form.get('tags', '[]')
+        team = request.form.get('team', '').strip()
+        approver = request.form.get('approver', '').strip()
+
+        roles_data = load_roles()
+        teams = [t.get('name') for t in roles_data.get('teams', []) if t.get('name')]
+        matching_team = next((t for t in roles_data.get('teams', []) if t.get('name') == team), None)
         
         print(f"DEBUG: Received header={header}, description={description[:50]}..., tags_json={tags_json}")
         
@@ -235,6 +274,18 @@ def submit_gtm_resource():
         if not description:
             print("DEBUG: Empty description")
             return jsonify({'error': 'Description is required'}), 400
+        if not team:
+            print("DEBUG: Empty team")
+            return jsonify({'error': 'Team is required'}), 400
+        if team and team not in teams:
+            print(f"DEBUG: Invalid team selected: {team}")
+            return jsonify({'error': 'Selected team is not valid'}), 400
+        if not approver:
+            print("DEBUG: Empty approver")
+            return jsonify({'error': 'Approver is required'}), 400
+        if matching_team and approver not in matching_team.get('approvers', []):
+            print(f"DEBUG: Invalid approver {approver} for team {team}")
+            return jsonify({'error': 'Selected approver is not valid for the chosen team'}), 400
         
         try:
             tags = json.loads(tags_json) if isinstance(tags_json, str) else tags_json
@@ -244,6 +295,9 @@ def submit_gtm_resource():
         except (json.JSONDecodeError, TypeError) as e:
             print(f"DEBUG: Tags JSON parse error: {str(e)}")
             return jsonify({'error': 'Invalid tags format'}), 400
+
+        if team and team not in tags:
+            tags.append(team)
         
         # Upload video directly to Azure Blob Storage (no temp file)
         filename = secure_filename(file.filename)
@@ -274,7 +328,9 @@ def submit_gtm_resource():
             description=description,
             tags=tags,
             video_blob_name=blob_name,
-            contact=contact
+            contact=contact,
+            team=team,
+            approver=approver
         )
         
         if not submission:
@@ -328,7 +384,8 @@ def get_submissions():
     """
     try:
         status = request.args.get('status')
-        submissions = SubmissionsManager.get_submissions(status=status)
+        team = request.args.get('team')
+        submissions = SubmissionsManager.get_submissions(status=status, team=team)
         return jsonify(submissions), 200
     except Exception as e:
         print(f"Error fetching submissions: {str(e)}")
@@ -410,6 +467,14 @@ def server_error(error):
 
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV', 'production') == 'development'
+    # Print registered routes for debugging
+    try:
+        print("Registered Flask routes:")
+        for rule in app.url_map.iter_rules():
+            print(f"{rule} -> {rule.endpoint}")
+    except Exception as _:
+        pass
+
     app.run(
         host='0.0.0.0',
         port=int(os.getenv('FLASK_PORT', 5000)),

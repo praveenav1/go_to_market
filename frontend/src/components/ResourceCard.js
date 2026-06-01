@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 function ResourceCard({ resource, onEdit }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLongDescription = resource.description && resource.description.length > 120;
 
   return (
     <>
@@ -13,9 +15,20 @@ function ResourceCard({ resource, onEdit }) {
         {/* Content Section */}
         <div className="flex-1 p-4 flex flex-col">
           {/* Description */}
-          <p className="text-gray-700 text-sm mb-4 line-clamp-3">
-            {resource.description}
-          </p>
+          <div className="text-gray-700 text-sm mb-4">
+            <p className={`text-sm ${expanded ? 'whitespace-normal' : 'overflow-hidden text-ellipsis whitespace-nowrap'}`}>
+              {resource.description}
+            </p>
+            {isLongDescription && (
+              <button
+                type="button"
+                onClick={() => setExpanded(prev => !prev)}
+                className="mt-2 text-primary text-sm font-semibold underline"
+              >
+                {expanded ? 'Show less' : 'Read more'}
+              </button>
+            )}
+          </div>
 
           {/* Tags */}
           <div className="mb-4 flex flex-wrap gap-2">

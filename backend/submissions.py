@@ -68,7 +68,7 @@ class SubmissionsManager:
 
     # ✅ CREATE SUBMISSION (UNCHANGED)
     @staticmethod
-    def add_submission(header, description, tags, video_blob_name, contact=None):
+    def add_submission(header, description, tags, video_blob_name, contact=None, team=None, approver=None):
         submissions = SubmissionsManager._load_submissions()
 
         submission_id = max([s.get('id', 0) for s in submissions], default=0) + 1
@@ -80,6 +80,8 @@ class SubmissionsManager:
             'tags': tags,
             'video_blob_name': video_blob_name,
             'contact': contact,
+            'team': team,
+            'approver': approver,
             'status': 'pending',
             'submitted_at': datetime.now().isoformat(),
             'reviewed_at': None,
@@ -94,10 +96,14 @@ class SubmissionsManager:
 
     # ✅ GET METHODS (UNCHANGED)
     @staticmethod
-    def get_submissions(status=None):
+    def get_submissions(status=None, team=None):
         submissions = SubmissionsManager._load_submissions()
+        if status and team:
+            return [s for s in submissions if s.get('status') == status and s.get('team') == team]
         if status:
             return [s for s in submissions if s.get('status') == status]
+        if team:
+            return [s for s in submissions if s.get('team') == team]
         return submissions
 
     @staticmethod
@@ -142,7 +148,9 @@ class SubmissionsManager:
                 "description": submission['description'],
                 "tags": submission['tags'],
                 "video_blob_name": submission['video_blob_name'],
-                "contact": submission.get('contact')
+                "contact": submission.get('contact'),
+                "team": submission.get('team'),
+                "approver": submission.get('approver')
             }
 
             existing_resources.append(new_resource)

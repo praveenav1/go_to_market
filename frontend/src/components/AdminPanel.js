@@ -7,20 +7,37 @@ function AdminPanel({ onEdit }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('pending'); // pending, approved, rejected, all
+  const [teams, setTeams] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState('');
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [reviewNotes, setReviewNotes] = useState('');
   const [actionInProgress, setActionInProgress] = useState(false);
 
   useEffect(() => {
+    fetchTeams();
     fetchSubmissions();
   }, [filter]);
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, [selectedTeam]);
+
+  const fetchTeams = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/roles`);
+      setTeams(response.data.teams || []);
+    } catch (err) {
+      console.error('Error fetching teams:', err);
+    }
+  };
 
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const url = filter === 'all' 
-        ? `${API_BASE_URL}/api/submissions`
-        : `${API_BASE_URL}/api/submissions?status=${filter}`;
+      const query = [];
+      if (filter && filter !== 'all') query.push(`status=${filter}`);
+      if (selectedTeam) query.push(`team=${encodeURIComponent(selectedTeam)}`);
+      const url = `${API_BASE_URL}/api/submissions${query.length ? `?${query.join('&')}` : ''}`;
       
       const response = await axios.get(url);
       setSubmissions(response.data);
@@ -97,7 +114,20 @@ function AdminPanel({ onEdit }) {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <div className="min-w-[220px]">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Team</label>
+              <select
+                value={selectedTeam}
+                onChange={(e) => setSelectedTeam(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+              >
+                <option value="">All teams</option>
+                {teams.map(team => (
+                  <option key={team.name} value={team.name}>{team.name}</option>
+                ))}
+              </select>
+            </div>
             {['pending', 'approved', 'rejected', 'all'].map(status => (
               <button
                 key={status}
@@ -171,6 +201,23 @@ function AdminPanel({ onEdit }) {
                         </span>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {(submission.team || submission.approver) && (
+                  <div className="grid grid-cols-2 gap-4 mb-4 text-sm text-gray-600">
+                    {submission.team && (
+                      <div>
+                        <p className="font-semibold">Team:</p>
+                        <p>{submission.team}</p>
+                      </div>
+                    )}
+                    {submission.approver && (
+                      <div>
+                        <p className="font-semibold">Approver:</p>
+                        <p>{submission.approver}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 

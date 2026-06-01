@@ -8,7 +8,9 @@ function AddGTMForm({ onSubmitted, editingResource }) {
     description: '',
     tags: [],
     videoFile: null,
-    contact: ''
+    contact: '',
+    team: '',
+    approver: ''
   });
   const [editingId, setEditingId] = useState(null);
 
@@ -20,13 +22,24 @@ function AddGTMForm({ onSubmitted, editingResource }) {
         description: editingResource.description || '',
         tags: editingResource.tags || [],
         videoFile: null,
-        contact: editingResource.contact || ''
+        contact: editingResource.contact || '',
+        team: editingResource.team || '',
+        approver: editingResource.approver || ''
       });
       setEditingId(editingResource.id || null);
     }
   }, [editingResource]);
 
+  useEffect(() => {
+    if (editingResource && roles.length > 0) {
+      const matchingRole = roles.find(role => role.name.toLowerCase() === (editingResource.team || '').toLowerCase());
+      setApproverOptions(matchingRole ? matchingRole.approvers : []);
+    }
+  }, [editingResource, roles]);
+
   const [allTags, setAllTags] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [approverOptions, setApproverOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -43,6 +56,15 @@ function AddGTMForm({ onSubmitted, editingResource }) {
       }
     };
     fetchTags();
+    const fetchRoles = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/roles`);
+        setRoles(response.data.teams || []);
+      } catch (err) {
+        console.error('Error fetching roles:', err);
+      }
+    };
+    fetchRoles();
   }, []);
 
   const handleInputChange = (e) => {
@@ -51,6 +73,13 @@ function AddGTMForm({ onSubmitted, editingResource }) {
       ...prev,
       [name]: value
     }));
+    if (name === 'team') {
+      const matching = roles.find(role => role.name.toLowerCase() === value.toLowerCase());
+      setApproverOptions(matching ? matching.approvers : []);
+      if (!matching) {
+        setFormData(prev => ({ ...prev, approver: '' }));
+      }
+    }
   };
 
   const handleVideoChange = (e) => {
@@ -122,6 +151,16 @@ function AddGTMForm({ onSubmitted, editingResource }) {
         setLoading(false);
         return;
       }
+      if (!formData.team.trim()) {
+        setError('Please enter your team');
+        setLoading(false);
+        return;
+      }
+      if (!formData.approver.trim()) {
+        setError('Please select an approver');
+        setLoading(false);
+        return;
+      }
       if (!formData.videoFile) {
         setError('Please upload a video file');
         setLoading(false);
@@ -133,6 +172,8 @@ function AddGTMForm({ onSubmitted, editingResource }) {
       submitData.append('header', formData.header);
       submitData.append('description', formData.description);
       submitData.append('tags', JSON.stringify(formData.tags));
+      submitData.append('team', formData.team);
+      submitData.append('approver', formData.approver);
       submitData.append('video', formData.videoFile);
       submitData.append('contact', formData.contact || '');
 
@@ -154,7 +195,12 @@ function AddGTMForm({ onSubmitted, editingResource }) {
         description: '',
         tags: [],
         videoFile: null
+        ,
+        contact: '',
+        team: '',
+        approver: ''
       });
+      setApproverOptions([]);
 
       // Notify parent to refresh resources without full reload
       if (onSubmitted) onSubmitted();
@@ -318,6 +364,50 @@ function AddGTMForm({ onSubmitted, editingResource }) {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     disabled={loading}
                   />
+                </div>
+
+                {/* Team Selection */}
+                <div>
+                  <label htmlFor="team" className="block text-sm font-semibold text-slate-700 mb-2">
+                    Team *
+                  </label>
+                  <select
+                    id="team"
+                    name="team"
+                    value={formData.team}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    disabled={loading || roles.length === 0}
+                  >
+                    <option value="">Select your team</option>
+                    {roles.map(role => (
+                      <option key={role.name} value={role.name}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Approver Selection */}
+                <div>
+                  <label htmlFor="approver" className="block text-sm font-semibold text-slate-700 mb-2">
+                    Approver *
+                  </label>
+                  <select
+                    id="approver"
+                    name="approver"
+                    value={formData.approver}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    disabled={loading || approverOptions.length === 0}
+                  >
+                    <option value="">Select an approver</option>
+                    {approverOptions.map(approver => (
+                      <option key={approver} value={approver}>
+                        {approver}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
               {/* Video Upload */}

@@ -91,8 +91,8 @@ function App() {
       
       {currentPage === 'home' ? (
         // Main Repository Page
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-6">
+        <div className="container mx-auto px-4 py-1">
+          <div className="mb-4">
             <FilterBar
               tags={allTags}
               selectedTags={selectedTags}
