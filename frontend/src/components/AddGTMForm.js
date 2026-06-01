@@ -13,7 +13,13 @@ function AddGTMForm({ onSubmitted, editingResource }) {
     approver: ''
   });
   const [editingId, setEditingId] = useState(null);
-
+ const [allTags, setAllTags] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [approverOptions, setApproverOptions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [tagInput, setTagInput] = useState('');
   // Pre-fill form when editingResource prop is provided
   useEffect(() => {
     if (editingResource) {
@@ -37,13 +43,7 @@ function AddGTMForm({ onSubmitted, editingResource }) {
     }
   }, [editingResource, roles]);
 
-  const [allTags, setAllTags] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [approverOptions, setApproverOptions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
-  const [tagInput, setTagInput] = useState('');
+ 
 
   // Fetch available tags from the API
   useEffect(() => {
@@ -74,7 +74,7 @@ function AddGTMForm({ onSubmitted, editingResource }) {
       [name]: value
     }));
     if (name === 'team') {
-      const matching = roles.find(role => role.name.toLowerCase() === value.toLowerCase());
+      const matching =roles && roles.find(role => role.name.toLowerCase() === value.toLowerCase());
       setApproverOptions(matching ? matching.approvers : []);
       if (!matching) {
         setFormData(prev => ({ ...prev, approver: '' }));
@@ -377,10 +377,10 @@ function AddGTMForm({ onSubmitted, editingResource }) {
                     value={formData.team}
                     onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                    disabled={loading || roles.length === 0}
+                    disabled={loading ||(roles && roles.length) === 0}
                   >
                     <option value="">Select your team</option>
-                    {roles.map(role => (
+                    {roles && roles.map(role => (
                       <option key={role.name} value={role.name}>
                         {role.name}
                       </option>
