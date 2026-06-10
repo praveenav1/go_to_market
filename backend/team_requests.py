@@ -1,7 +1,7 @@
 import os
 import json
 from datetime import datetime
-from .db import create_team, get_user_by_username
+from db import create_team, get_user_by_username
 
 ROOT = os.path.dirname(__file__)
 TEAM_REQUESTS_FILE = os.path.join(ROOT, 'team_requests.json')

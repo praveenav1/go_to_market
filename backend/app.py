@@ -1,102 +1,24 @@
-"""
-GTM Repository Backend API
-Flask-based backend for serving GTM resources
-"""
-
-import json
-from flask import Flask, jsonify, request, send_file, redirect
-from flask_cors import CORS
+"""App runner that uses the modular `api` package."""
+from api import create_app
 from dotenv import load_dotenv
 import os
-from werkzeug.utils import secure_filename
-from blob_service import BlobStorageService
-from submissions import SubmissionsManager
-from db import get_user_by_username, create_user
-from team_requests import TeamRequestManager
-import pymysql
-from pymysql.cursors import DictCursor
-# from gtm_data import GTM_RESOURCES
 
-# Load team roles from roles.json
-ROLES_FILE = os.path.join(os.path.dirname(__file__), 'roles.json')
-
-def load_roles():
-    if not os.path.exists(ROLES_FILE):
-        return {'teams': []}
-    try:
-        with open(ROLES_FILE, 'r') as f:
-            roles = json.load(f)
-            return roles if isinstance(roles, dict) else {'teams': []}
-    except Exception as e:
-        print(f"Error loading roles file: {str(e)}")
-        return {'teams': []}
-
-# Load environment variables
 load_dotenv()
 
-# Initialize Flask app
-app = Flask(__name__)
-CORS(app)
-blob_service = BlobStorageService()
-
-# Configure file uploads
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'temp_uploads')
-UPLOADS_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')  # Persistent uploads
-ALLOWED_EXTENSIONS = {'mp4', 'webm', 'avi', 'mov', 'mkv', 'flv', 'm4v'}
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(UPLOADS_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['UPLOADS_FOLDER'] = UPLOADS_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
-
-# Initialize Blob Storage Service
-
-
-
-def allowed_file(filename):
-    """Check if file extension is allowed"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def serialize_resource(resource):
-    """Normalize resource payload and resolve the final video URL."""
-    raw_video_value = resource.get('video_blob_name') or resource.get('video_url', '')
-    return {
-        'id': resource['id'],
-        'header': resource['header'],
-        'description': resource['description'],
-        'tags': resource.get('tags', []),
-        'video_url': blob_service.build_blob_url(raw_video_value),
-        'contact': resource.get('contact'),
-        'team': resource.get('team'),
-        'approver': resource.get('approver')
-    }
-
-
-@app.route('/api/resources', methods=['GET'])
-def get_resources():
-    """
-    Get all GTM resources
-    
-    Returns:
-        JSON: List of all resources with header, description, tags, and video URL
-    """
-    
+if __name__ == '__main__':
+    debug_mode = os.getenv('FLASK_ENV', 'production') == 'development'
     try:
-        azure_resources = blob_service.download_json_blob("resources.json")
+        print("Registered Flask routes:")
+        for rule in app.url_map.iter_rules():
+            print(f"{rule} -> {rule.endpoint}")
+    except Exception:
+        pass
 
-        if not isinstance(azure_resources, list):
-            azure_resources = []
-
-        resources = [serialize_resource(r) for r in azure_resources]
-
-        return jsonify(resources), 200
-
-    except Exception as e:
-        print(f"Error fetching resources: {str(e)}")
-        return jsonify({'error': 'Failed to fetch resources'}), 500
+    app.run(
+        host='0.0.0.0',
+        port=int(os.getenv('FLASK_PORT', 5000)),
+        debug=debug_mode
+    )
 
 
 
