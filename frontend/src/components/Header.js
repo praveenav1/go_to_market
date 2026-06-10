@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import logo from '../assets/logo.webp';
 
-function Header({ onNavigate, currentPage, onSearch, selectedTab, onTabSelect }) {
+function Header({ onNavigate, currentPage, onSearch, selectedTab, onTabSelect, isAdmin, currentUser, onLogin, onLogout }) {
   const [query, setQuery] = useState('');
 
   const handleSearchChange = (e) => {
@@ -43,16 +43,40 @@ function Header({ onNavigate, currentPage, onSearch, selectedTab, onTabSelect })
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => onNavigate('admin')}
-              className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors ${
-                currentPage === 'admin'
-                  ? 'bg-ey-yellow text-ey-black'
-                  : 'bg-gray-800 text-white hover:bg-gray-700'
-              }`}
-            >
-              🔐 Admin Panel
-            </button>
+            {isAdmin ? (
+              <>
+                <div className="hidden sm:block px-3 py-2 rounded-md text-sm text-gray-200 bg-gray-800">
+                  Signed in as {currentUser?.username || 'admin'}
+                </div>
+                <button
+                  onClick={() => onNavigate('admin')}
+                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors ${
+                    currentPage === 'admin'
+                      ? 'bg-ey-yellow text-ey-black'
+                      : 'bg-gray-800 text-white hover:bg-gray-700'
+                  }`}
+                >
+                  🔐 Admin Panel
+                </button>
+                <button
+                  onClick={onLogout}
+                  className="px-3 py-2 rounded-md text-sm font-semibold bg-gray-700 text-white hover:bg-gray-600"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={onLogin}
+                className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors ${
+                  currentPage === 'login'
+                    ? 'bg-ey-yellow text-ey-black'
+                    : 'bg-gray-800 text-white hover:bg-gray-700'
+                }`}
+              >
+                🔐 Login as Admin
+              </button>
+            )}
             <button
               onClick={() => onNavigate(currentPage === 'home' ? 'add-gtm' : 'home')}
               className="px-4 py-2 bg-ey-yellow text-ey-black font-semibold rounded-md hover:opacity-95 transition-colors"

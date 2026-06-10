@@ -4,11 +4,14 @@ import FilterBar from './components/FilterBar';
 import ResourceGrid from './components/ResourceGrid';
 import AddGTMForm from './components/AddGTMForm';
 import AdminPanel from './components/AdminPanel';
+import AdminLogin from './components/AdminLogin';
 import axios from 'axios';
 import API_BASE_URL from './config';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home'); // 'home' or 'add-gtm'
+  const [currentPage, setCurrentPage] = useState('home'); // 'home', 'add-gtm', 'login', 'admin'
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [resources, setResources] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [allTags, setAllTags] = useState([]);
@@ -85,9 +88,33 @@ function App() {
 
   const handleTabSelect = (tab) => setSelectedTab(tab);
 
+  const handleAdminLogin = (userData) => {
+    setIsAdmin(true);
+    setCurrentUser(userData);
+    setCurrentPage('admin');
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdmin(false);
+    setCurrentUser(null);
+    setCurrentPage('home');
+  };
+
+  const isSuperAdmin = currentUser?.teams?.includes('Super Team');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <Header onNavigate={setCurrentPage} currentPage={currentPage} onSearch={handleSearch} selectedTab={selectedTab} onTabSelect={handleTabSelect} />
+      <Header
+        onNavigate={setCurrentPage}
+        currentPage={currentPage}
+        onSearch={handleSearch}
+        selectedTab={selectedTab}
+        onTabSelect={handleTabSelect}
+        isAdmin={isAdmin}
+        currentUser={currentUser}
+        onLogin={() => setCurrentPage('login')}
+        onLogout={handleAdminLogout}
+      />
       
       {currentPage === 'home' ? (
         // Main Repository Page
@@ -121,9 +148,27 @@ function App() {
           ) : currentPage === 'add-gtm' ? (
         // Add GTM Page
         <AddGTMForm onSubmitted={handleSubmitted} editingResource={editingResource} />
+      ) : currentPage === 'login' ? (
+        <AdminLogin onLogin={handleAdminLogin} onCancel={() => setCurrentPage('home')} />
       ) : currentPage === 'admin' ? (
-        // Admin Panel Page
-          <AdminPanel onEdit={handleEdit} />
+        isAdmin ? (
+          <AdminPanel onEdit={handleEdit} currentUser={currentUser} isSuperAdmin={isSuperAdmin} />
+        ) : (
+          <div className="container mx-auto px-4 py-8">
+            <div className="max-w-xl mx-auto bg-white rounded-lg shadow-md p-8">
+              <h1 className="text-3xl font-bold text-slate-900 mb-4">Admin access required</h1>
+              <p className="text-gray-600 mb-6">
+                You must login as admin to view this page.
+              </p>
+              <button
+                onClick={() => setCurrentPage('login')}
+                className="w-full px-5 py-3 bg-ey-yellow text-ey-black rounded-lg font-semibold hover:bg-yellow-400 transition"
+              >
+                Login as admin
+              </button>
+            </div>
+          </div>
+        )
       ) : null}
     </div>
   );

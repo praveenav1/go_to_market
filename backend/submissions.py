@@ -96,14 +96,28 @@ class SubmissionsManager:
 
     # ✅ GET METHODS (UNCHANGED)
     @staticmethod
-    def get_submissions(status=None, team=None):
+    def get_submissions(status=None, team=None, approver=None):
         submissions = SubmissionsManager._load_submissions()
+        if status and team and approver:
+            return [
+                s for s in submissions
+                if s.get('status') == status and s.get('team') == team and s.get('approver') == approver
+            ]
         if status and team:
             return [s for s in submissions if s.get('status') == status and s.get('team') == team]
+        if status and approver:
+            return [
+                s for s in submissions
+                if s.get('status') == status and s.get('approver') == approver
+            ]
+        if team and approver:
+            return [s for s in submissions if s.get('team') == team and s.get('approver') == approver]
         if status:
             return [s for s in submissions if s.get('status') == status]
         if team:
             return [s for s in submissions if s.get('team') == team]
+        if approver:
+            return [s for s in submissions if s.get('approver') == approver]
         return submissions
 
     @staticmethod
