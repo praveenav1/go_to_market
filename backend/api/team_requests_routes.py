@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, current_app
-from ..db import get_user_by_username, create_team
-from ..team_requests import TeamRequestManager
+from db import get_user_by_username, create_team
+from team_requests import TeamRequestManager
 import pymysql
 from pymysql.cursors import DictCursor
 import os

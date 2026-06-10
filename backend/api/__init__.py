@@ -3,7 +3,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 
-from ..blob_service import BlobStorageService
+from blob_service import BlobStorageService
 
 
 def create_app():

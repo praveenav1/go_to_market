@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app
-from ..submissions import SubmissionsManager
+from submissions import SubmissionsManager
 import json
 
 submissions_bp = Blueprint('submissions', __name__)
