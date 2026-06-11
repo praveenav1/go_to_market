@@ -25,9 +25,11 @@ def create_app():
     from .resources import resources_bp
     from .submissions_routes import submissions_bp
     from .team_requests_routes import team_requests_bp
+    from .team_management_routes import team_management_bp
 
     app.register_blueprint(resources_bp)
     app.register_blueprint(submissions_bp)
     app.register_blueprint(team_requests_bp)
+    app.register_blueprint(team_management_bp)
 
     return app

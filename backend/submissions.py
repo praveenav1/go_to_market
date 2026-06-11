@@ -125,6 +125,46 @@ class SubmissionsManager:
         submissions = SubmissionsManager._load_submissions()
         return next((s for s in submissions if s['id'] == submission_id), None)
 
+    @staticmethod
+    def update_submission(submission_id, header=None, description=None, tags=None, contact=None, team=None, approver=None):
+        submissions = SubmissionsManager._load_submissions()
+        submission = next((s for s in submissions if s['id'] == submission_id), None)
+        if not submission:
+            return False
+        
+        # Only allow editing pending submissions
+        if submission.get('status') != 'pending':
+            return False
+        
+        if header is not None:
+            submission['header'] = header
+        if description is not None:
+            submission['description'] = description
+        if tags is not None:
+            submission['tags'] = tags
+        if contact is not None:
+            submission['contact'] = contact
+        if team is not None:
+            submission['team'] = team
+        if approver is not None:
+            submission['approver'] = approver
+        
+        return SubmissionsManager._save_submissions(submissions)
+
+    @staticmethod
+    def delete_submission(submission_id):
+        submissions = SubmissionsManager._load_submissions()
+        submission = next((s for s in submissions if s['id'] == submission_id), None)
+        if not submission:
+            return False
+        
+        # Only allow deleting pending submissions
+        if submission.get('status') != 'pending':
+            return False
+        
+        submissions = [s for s in submissions if s['id'] != submission_id]
+        return SubmissionsManager._save_submissions(submissions)
+
     # ✅ ✅ IMPORTANT: UPDATED APPROVE LOGIC
     @staticmethod
     def approve_submission(submission_id, review_notes=''):

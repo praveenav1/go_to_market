@@ -103,3 +103,44 @@ def reject_submission(submission_id):
     except Exception as e:
         print(f"Error rejecting submission: {e}")
         return jsonify({'error': 'Failed to reject submission'}), 500
+
+
+@submissions_bp.route('/api/submissions/<int:submission_id>', methods=['PUT'])
+def update_submission(submission_id):
+    try:
+        data = request.get_json() or {}
+        header = data.get('header')
+        description = data.get('description')
+        tags = data.get('tags')
+        contact = data.get('contact')
+        team = data.get('team')
+        approver = data.get('approver')
+        
+        success = SubmissionsManager.update_submission(
+            submission_id,
+            header=header,
+            description=description,
+            tags=tags,
+            contact=contact,
+            team=team,
+            approver=approver
+        )
+        if not success:
+            return jsonify({'error': 'Submission not found or cannot be edited'}), 404
+        submission = SubmissionsManager.get_submission(submission_id)
+        return jsonify({'message': 'Submission updated', 'submission': submission}), 200
+    except Exception as e:
+        print(f"Error updating submission: {e}")
+        return jsonify({'error': 'Failed to update submission'}), 500
+
+
+@submissions_bp.route('/api/submissions/<int:submission_id>', methods=['DELETE'])
+def delete_submission_route(submission_id):
+    try:
+        success = SubmissionsManager.delete_submission(submission_id)
+        if not success:
+            return jsonify({'error': 'Submission not found or cannot be deleted'}), 404
+        return jsonify({'message': 'Submission deleted', 'submission_id': submission_id}), 200
+    except Exception as e:
+        print(f"Error deleting submission: {e}")
+        return jsonify({'error': 'Failed to delete submission'}), 500

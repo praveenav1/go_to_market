@@ -3,9 +3,10 @@ import axios from 'axios';
 import API_BASE_URL from '../config';
 
 function AdminPanel({ onEdit, currentUser, isSuperAdmin }) {
-  const [activeTab, setActiveTab] = useState('submissions'); // submissions or team-requests
+  const [activeTab, setActiveTab] = useState('submissions'); // submissions, team-requests, or team-management
   const [submissions, setSubmissions] = useState([]);
   const [teamRequests, setTeamRequests] = useState([]);
+  const [allTeams, setAllTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('pending'); // pending, approved, rejected, all
@@ -16,6 +17,15 @@ function AdminPanel({ onEdit, currentUser, isSuperAdmin }) {
   const [reviewNotes, setReviewNotes] = useState('');
   const [actionInProgress, setActionInProgress] = useState(false);
   
+  // Edit submission state
+  const [editingSubmission, setEditingSubmission] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    header: '',
+    description: '',
+    tags: [],
+    contact: ''
+  });
+  
   // Team creation form state
   const [showCreateTeamForm, setShowCreateTeamForm] = useState(false);
   const [teamFormData, setTeamFormData] = useState({
@@ -23,23 +33,40 @@ function AdminPanel({ onEdit, currentUser, isSuperAdmin }) {
     members: [{ username: '', password: '' }],
     selectedApprover: ''
   });
+  
+  // Team management state
+  const [editingTeam, setEditingTeam] = useState(null);
+  const [editingTeamName, setEditingTeamName] = useState('');
+  const [editingMember, setEditingMember] = useState(null);
+  const [editingMemberUsername, setEditingMemberUsername] = useState('');
 
-  useEffect(() => {
-    fetchTeams();
-    if (activeTab === 'submissions') {
-      fetchSubmissions();
-    } else {
-      fetchTeamRequests();
-    }
-  }, [filter, activeTab]);
+  // useEffect(() => {
+  //   fetchTeams();
+  //   if (activeTab === 'submissions') {
+  //     fetchSubmissions();
+  //   } else if (activeTab === 'team-requests') {
+  //     fetchTeamRequests();
+  //   } else if (activeTab === 'team-management') {
+  //     fetchAllTeams();
+  //   }
+  // }, [filter, activeTab]);
 
+  // useEffect(() => {
+  //   if (activeTab === 'submissions') {
+  //     fetchSubmissions();
+  //   }
+  // }, [selectedTeam]);
   useEffect(() => {
-    if (activeTab === 'submissions') {
-      fetchSubmissions();
-    } else {
-      fetchTeamRequests();
-    }
-  }, [selectedTeam]);
+  fetchTeams();
+
+  if (activeTab === 'submissions') {
+    fetchSubmissions();
+  } else if (activeTab === 'team-requests') {
+    fetchTeamRequests();
+  } else if (activeTab === 'team-management') {
+    fetchAllTeams();
+  }
+}, [filter, activeTab, selectedTeam]);
 
   const fetchTeams = async () => {
     try {
@@ -90,6 +117,21 @@ function AdminPanel({ onEdit, currentUser, isSuperAdmin }) {
     }
   };
 
+  const fetchAllTeams = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/api/teams`);
+      setAllTeams(response.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching teams:', err);
+      setError('Failed to load teams');
+      setAllTeams([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleApprove = async (submissionId) => {
     try {
       setActionInProgress(true);
@@ -123,6 +165,51 @@ function AdminPanel({ onEdit, currentUser, isSuperAdmin }) {
       setError('Failed to reject submission');
     } finally {
       setActionInProgress(false);
+    }
+  };
+
+  const handleEditSubmission = (submission) => {
+    setEditingSubmission(submission.id);
+    setEditFormData({
+      header: submission.header,
+      description: submission.description,
+      tags: submission.tags || [],
+      contact: submission.contact || ''
+    });
+  };
+
+  const handleSaveSubmissionEdit = async () => {
+    try {
+      setActionInProgress(true);
+      await axios.put(
+        `${API_BASE_URL}/api/submissions/${editingSubmission}`,
+        editFormData
+      );
+      setEditingSubmission(null);
+      setEditFormData({ header: '', description: '', tags: [], contact: '' });
+      setError(null);
+      fetchSubmissions();
+    } catch (err) {
+      console.error('Error updating submission:', err);
+      setError('Failed to update submission');
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  const handleDeleteSubmission = async (submissionId) => {
+    if (window.confirm('Are you sure you want to delete this submission?')) {
+      try {
+        setActionInProgress(true);
+        await axios.delete(`${API_BASE_URL}/api/submissions/${submissionId}`);
+        setError(null);
+        fetchSubmissions();
+      } catch (err) {
+        console.error('Error deleting submission:', err);
+        setError('Failed to delete submission');
+      } finally {
+        setActionInProgress(false);
+      }
     }
   };
 
@@ -208,6 +295,84 @@ function AdminPanel({ onEdit, currentUser, isSuperAdmin }) {
     setTeamFormData({ ...teamFormData, members: updatedMembers });
   };
 
+  const handleUpdateTeam = async (oldTeamName) => {
+    if (!editingTeamName || editingTeamName === oldTeamName) {
+      setEditingTeam(null);
+      return;
+    }
+    try {
+      setActionInProgress(true);
+      await axios.put(
+        `${API_BASE_URL}/api/teams/${oldTeamName}`,
+        { new_team_name: editingTeamName }
+      );
+      setEditingTeam(null);
+      setEditingTeamName('');
+      setError(null);
+      fetchAllTeams();
+    } catch (err) {
+      console.error('Error updating team:', err);
+      setError('Failed to update team name');
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  const handleDeleteTeam = async (teamName) => {
+    if (window.confirm(`Are you sure you want to delete team "${teamName}" and all its members?`)) {
+      try {
+        setActionInProgress(true);
+        await axios.delete(`${API_BASE_URL}/api/teams/${teamName}`);
+        setError(null);
+        fetchAllTeams();
+      } catch (err) {
+        console.error('Error deleting team:', err);
+        setError('Failed to delete team');
+      } finally {
+        setActionInProgress(false);
+      }
+    }
+  };
+
+  const handleDeleteMember = async (username) => {
+    if (window.confirm(`Are you sure you want to delete member "${username}"?`)) {
+      try {
+        setActionInProgress(true);
+        await axios.delete(`${API_BASE_URL}/api/team-members/${username}`);
+        setError(null);
+        fetchAllTeams();
+      } catch (err) {
+        console.error('Error deleting team member:', err);
+        setError('Failed to delete team member');
+      } finally {
+        setActionInProgress(false);
+      }
+    }
+  };
+
+  const handleSaveMemberUsername = async (oldUsername) => {
+    if (!editingMemberUsername || editingMemberUsername === oldUsername) {
+      setEditingMember(null);
+      return;
+    }
+    try {
+      setActionInProgress(true);
+      await axios.put(
+        `${API_BASE_URL}/api/team-members/${oldUsername}`,
+        { new_username: editingMemberUsername }
+      );
+      setEditingMember(null);
+      setEditingMemberUsername('');
+      setError(null);
+      fetchAllTeams();
+    } catch (err) {
+      console.error('Error updating member:', err);
+      setError('Failed to update member username');
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString() + ' ' + new Date(dateString).toLocaleTimeString();
@@ -242,12 +407,20 @@ function AdminPanel({ onEdit, currentUser, isSuperAdmin }) {
             GTM Submissions
           </button>
           {isSuperAdmin && (
-            <button
-              onClick={() => setActiveTab('team-requests')}
-              className={`px-4 py-2 font-semibold ${activeTab === 'team-requests' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              Team Requests
-            </button>
+            <>
+              <button
+                onClick={() => setActiveTab('team-requests')}
+                className={`px-4 py-2 font-semibold ${activeTab === 'team-requests' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+              >
+                Team Requests
+              </button>
+              <button
+                onClick={() => setActiveTab('team-management')}
+                className={`px-4 py-2 font-semibold ${activeTab === 'team-management' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+              >
+                Team Management
+              </button>
+            </>
           )}
         </div>
 
@@ -347,13 +520,22 @@ function AdminPanel({ onEdit, currentUser, isSuperAdmin }) {
                     )}
 
                     {submission.status === 'pending' && (
-                      <button
-                        onClick={() => setSelectedSubmission(submission.id)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        disabled={actionInProgress}
-                      >
-                        Review
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditSubmission(submission)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          disabled={actionInProgress}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setSelectedSubmission(submission.id)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                          disabled={actionInProgress}
+                        >
+                          Review
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -636,6 +818,235 @@ function AdminPanel({ onEdit, currentUser, isSuperAdmin }) {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+          </>
+        )}
+        {/* Edit Submission Modal */}
+        {editingSubmission && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6 max-h-96 overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-4">Edit Submission</h2>
+
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Header</label>
+                <input
+                  type="text"
+                  value={editFormData.header}
+                  onChange={(e) => setEditFormData({ ...editFormData, header: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
+                <textarea
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  rows="4"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none resize-none"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Contact</label>
+                <input
+                  type="text"
+                  value={editFormData.contact}
+                  onChange={(e) => setEditFormData({ ...editFormData, contact: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleSaveSubmissionEdit()}
+                  disabled={actionInProgress}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-semibold"
+                >
+                  {actionInProgress ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={() => handleDeleteSubmission(editingSubmission)}
+                  disabled={actionInProgress}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 font-semibold"
+                >
+                  {actionInProgress ? 'Deleting...' : 'Delete'}
+                </button>
+                <button
+                  onClick={() => setEditingSubmission(null)}
+                  disabled={actionInProgress}
+                  className="flex-1 px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 disabled:bg-gray-300 font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Edit button to submissions */}
+        {/* {activeTab === 'submissions' && submissions.length > 0 && submissions.map(submission => {
+          const existingCard = document.querySelector(`[data-submission-id="${submission.id}"]`);
+          if (existingCard) {
+            const reviewBtn = existingCard.querySelector('button');
+            if (reviewBtn && !existingCard.querySelector('[data-edit-btn]')) {
+              const editBtn = document.createElement('button');
+              editBtn.setAttribute('data-edit-btn', 'true');
+              editBtn.innerHTML = 'Edit';
+              editBtn.className = 'ml-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700';
+              editBtn.onclick = () => handleEditSubmission(submission);
+              reviewBtn.parentNode.insertBefore(editBtn, reviewBtn.nextSibling);
+            }
+          }
+          return null;
+        })} */}
+
+        {/* Team Management Tab */}
+        {activeTab === 'team-management' && (
+          <>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-slate-900 mb-4">All Teams</h2>
+            </div>
+
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading teams...</p>
+                </div>
+              </div>
+            ) : allTeams.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-md p-8 text-center">
+                <p className="text-gray-600">No teams found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {allTeams.map(team => (
+                  <div key={team.name} className="bg-white rounded-lg shadow-md p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        {editingTeam === team.name ? (
+                          <div className="flex gap-2 mb-2">
+                            <input
+                              type="text"
+                              value={editingTeamName}
+                              onChange={(e) => setEditingTeamName(e.target.value)}
+                              placeholder="New team name"
+                              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg outline-none"
+                            />
+                            <button
+                              onClick={() => handleUpdateTeam(team.name)}
+                              disabled={actionInProgress}
+                              className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingTeam(null)}
+                              className="px-3 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <h3 className="text-xl font-bold text-slate-900">{team.name}</h3>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        {editingTeam !== team.name && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditingTeam(team.name);
+                                setEditingTeamName(team.name);
+                              }}
+                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTeam(team.name)}
+                              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Approvers:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {team.approvers?.map(approver => (
+                          <span key={approver} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">
+                            {approver}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <p className="text-sm font-semibold text-gray-700 mb-3">Members ({team.members?.length || 0}):</p>
+                      {team.members && team.members.length > 0 ? (
+                        <div className="space-y-2">
+                          {team.members.map(member => (
+                            <div key={member.id} className="flex justify-between items-center bg-gray-50 p-3 rounded">
+                              {editingMember === member.username ? (
+                                <div className="flex gap-2 flex-1">
+                                  <input
+                                    type="text"
+                                    value={editingMemberUsername}
+                                    onChange={(e) => setEditingMemberUsername(e.target.value)}
+                                    placeholder="New username"
+                                    className="flex-1 px-3 py-1 border border-gray-300 rounded outline-none"
+                                  />
+                                  <button
+                                    onClick={() => handleSaveMemberUsername(member.username)}
+                                    disabled={actionInProgress}
+                                    className="px-2 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:bg-gray-400"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingMember(null)}
+                                    className="px-2 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <span className="text-sm text-gray-700">{member.username}</span>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setEditingMember(member.username);
+                                        setEditingMemberUsername(member.username);
+                                      }}
+                                      className="px-2 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteMember(member.username)}
+                                      className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">No members in this team</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </>
